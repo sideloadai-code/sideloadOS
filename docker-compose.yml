@@ -31,6 +31,8 @@ services:
     command: celery -A main.celery_app worker --loglevel=info
     volumes:
       - ./backend:/app
+      - ./workspaces:/app/workspaces
+      - ./blueprints:/app/blueprints
     environment:
       - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
       - REDIS_URL=redis://redis:6379/0
@@ -48,10 +50,15 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+      - ./workspaces:/app/workspaces
+      - ./blueprints:/app/blueprints
     environment:
       - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
       - REDIS_URL=redis://redis:6379/0
       - FERNET_KEY=${FERNET_KEY}
+      - VERTEXAI_PROJECT=${VERTEXAI_PROJECT}
+      - VERTEXAI_LOCATION=${VERTEXAI_LOCATION:-us-central1}
     ports:
       - "8000:8000"
     depends_on:

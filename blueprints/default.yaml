@@ -1,0 +1,36 @@
+name: "SideloadOS Core"
+
+entry_point: "supervisor_node"
+
+interrupt_before:
+  - "action_node"
+
+nodes:
+  - name: "supervisor_node"
+    handler: "engine.graph.supervisor_node"
+  - name: "workspace_node"
+    handler: "engine.graph.workspace_node"
+  - name: "chat_node"
+    handler: "engine.graph.chat_node"
+  - name: "draft_node"
+    handler: "engine.graph.draft_node"
+  - name: "action_node"
+    handler: "engine.graph.action_node"
+
+edges:
+  - source: "workspace_node"
+    target: "__end__"
+  - source: "chat_node"
+    target: "__end__"
+  - source: "draft_node"
+    target: "action_node"
+  - source: "action_node"
+    target: "__end__"
+
+conditional_edges:
+  - source: "supervisor_node"
+    router: "engine.graph.route_from_supervisor"
+    path_map:
+      create_workspace: "workspace_node"
+      draft_artifact: "draft_node"
+      chat: "chat_node"

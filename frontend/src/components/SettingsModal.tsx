@@ -126,7 +126,12 @@ export function SettingsModal({
                 <DialogHeader>
                     <DialogTitle className="text-zinc-100">Settings</DialogTitle>
                     <DialogDescription className="text-zinc-400">
-                        Manage your AI provider API keys.
+                        Manage your AI provider API keys. Vertex AI uses Application
+                        Default Credentials — configure via{" "}
+                        <code className="rounded bg-zinc-800 px-1 text-xs text-emerald-400">
+                            gcloud auth application-default login
+                        </code>{" "}
+                        and <code className="rounded bg-zinc-800 px-1 text-xs text-emerald-400">.env</code>.
                     </DialogDescription>
                 </DialogHeader>
 

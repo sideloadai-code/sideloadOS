@@ -61,9 +61,9 @@ export function WalkthroughCard({
                     {!isStreaming && !isPaused && steps.length > 0 && (
                         <Badge
                             variant="secondary"
-                            className="shrink-0 bg-zinc-800 text-zinc-400"
+                            className="shrink-0 bg-emerald-900/40 text-emerald-400 border-emerald-800/50"
                         >
-                            Complete
+                            Complete ✓
                         </Badge>
                     )}
                 </div>

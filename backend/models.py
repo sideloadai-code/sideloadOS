@@ -46,6 +46,7 @@ class Artifact(Base):
     human_edits: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     thread_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    file_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
 class Setting(Base):
     __tablename__ = "settings"
@@ -53,3 +54,5 @@ class Setting(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     provider_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     encrypted_api_key: Mapped[str] = mapped_column(String, nullable=False)
+    vertex_project: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    vertex_location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

@@ -7,12 +7,13 @@ a "paused" event when the HITL interrupt fires.
 """
 
 import json
+import os
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from engine.graph import get_compiled_graph
+from engine.blueprint_parser import compile_blueprint
 
 router = APIRouter(prefix="/api", tags=["orchestration"])
 
@@ -28,7 +29,8 @@ class OrchestrateRequest(BaseModel):
 async def orchestrate(body: OrchestrateRequest, request: Request):
     """Stream LangGraph execution as SSE, pausing at HITL interrupt."""
     checkpointer = request.app.state.checkpointer
-    graph = get_compiled_graph(checkpointer)
+    blueprint_path = os.getenv("SIDELOAD_BLUEPRINT", "/app/blueprints/default.yaml")
+    graph = compile_blueprint(blueprint_path, checkpointer)
     config = {"configurable": {"thread_id": body.thread_id, "model_alias": body.model_alias}}
 
     async def event_generator():
@@ -60,6 +62,15 @@ async def orchestrate(body: OrchestrateRequest, request: Request):
                         "artifact_id": artifact_id,
                     }),
                 }
+            elif not next_nodes:
+                # Amendment 5: surface the final AI message so the UI can display it
+                msgs = state.values.get("messages", [])
+                last_msg = msgs[-1].content if msgs else ""
+                if last_msg:
+                    yield {
+                        "event": "chat_response",
+                        "data": json.dumps({"message": last_msg}),
+                    }
         except Exception as e:
             yield {
                 "event": "error",

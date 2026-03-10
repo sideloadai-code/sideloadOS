@@ -103,12 +103,43 @@ export function useAgentStream() {
                             continue;
                         }
 
+                        // ── Node label map for human-readable step names ──
+                        const NODE_LABELS: Record<string, string> = {
+                            supervisor_node: "🧭 Analyzing request...",
+                            workspace_node: "⚙️ Executing system tool...",
+                            chat_node: "💬 Generating response...",
+                            draft_node: "📝 Drafting artifact...",
+                            action_node: "✅ Applying changes...",
+                        };
+
                         if (eventType === "status") {
-                            const step = (json.step as string) ?? "";
-                            if (step) {
+                            const rawStep = (json.step as string) ?? "";
+                            // Amendment 4: ONLY process on_chain_start events
+                            if (rawStep && rawStep.includes("on_chain_start:")) {
+                                const matchedNode = Object.keys(NODE_LABELS).find(
+                                    (key) => rawStep.includes(key)
+                                );
+                                if (matchedNode) {
+                                    const label = NODE_LABELS[matchedNode];
+                                    // Deduplicate consecutive identical steps
+                                    setState((prev) => {
+                                        const lastStep =
+                                            prev.steps[prev.steps.length - 1];
+                                        if (lastStep === label) return prev;
+                                        return {
+                                            ...prev,
+                                            steps: [...prev.steps, label],
+                                        };
+                                    });
+                                }
+                            }
+                        } else if (eventType === "chat_response") {
+                            // Amendment 5: Display the AI's chat response in the card
+                            const message = (json.message as string) ?? "";
+                            if (message) {
                                 setState((prev) => ({
                                     ...prev,
-                                    steps: [...prev.steps, step],
+                                    steps: [...prev.steps, `🤖 ${message}`],
                                 }));
                             }
                         } else if (eventType === "paused") {

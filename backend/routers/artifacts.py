@@ -31,6 +31,7 @@ class ArtifactOut(BaseModel):
     human_edits: Optional[str]
     status: str
     thread_id: Optional[str]
+    file_path: Optional[str] = None
 
 
 class ApproveRequest(BaseModel):
@@ -45,8 +46,10 @@ async def resume_workflow(checkpointer, thread_id: str):
     This function is invoked via FastAPI BackgroundTasks so the HTTP
     response returns instantly while the graph continues executing.
     """
-    from engine.graph import get_compiled_graph
-    graph = get_compiled_graph(checkpointer)
+    import os
+    from engine.blueprint_parser import compile_blueprint
+    blueprint_path = os.getenv("SIDELOAD_BLUEPRINT", "/app/blueprints/default.yaml")
+    graph = compile_blueprint(blueprint_path, checkpointer)
     await graph.ainvoke(None, {"configurable": {"thread_id": thread_id}})
 
 

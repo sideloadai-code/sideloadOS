@@ -38,3 +38,12 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# ─── AI Workspaces (bind-mounted) ────────────────
+workspaces/*
+!workspaces/.gitkeep
+
+# ─── Blueprints (bind-mounted) ───────────────────
+blueprints/*
+!blueprints/.gitkeep
+!blueprints/default.yaml

@@ -4,9 +4,12 @@ Universal LLM Gateway for SideloadOS.
 Returns instantiated ChatLiteLLM objects (LangChain BaseChatModel)
 for direct use in LangGraph nodes.
 
-Supports cloud providers (OpenAI, Anthropic) via encrypted DB keys
+Supports cloud providers (OpenAI, Anthropic) via encrypted DB keys,
+Vertex AI via Application Default Credentials (ADC),
 and local Ollama models via host.docker.internal:11434.
 """
+
+import os
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,15 +42,20 @@ def resolve_provider(model_alias: str) -> str:
     Map a model alias to its provider name.
 
     Examples:
-        "gpt-4o"          → "openai"
+        "gpt-4o"                   → "openai"
         "claude-sonnet-4-20250514" → "anthropic"
-        "ollama/llama3"   → "ollama"
+        "ollama/llama3"            → "ollama"
+        "vertex_ai/gemini-2.5-pro" → "vertex_ai"
     """
     lower = model_alias.lower()
 
     # Ollama models use explicit prefix
     if lower.startswith("ollama/") or lower.startswith("ollama_chat/"):
         return "ollama"
+
+    # Vertex AI models use vertex_ai/ prefix
+    if lower.startswith("vertex_ai/"):
+        return "vertex_ai"
 
     # Match by known prefix
     for prefix, provider in _PREFIX_TO_PROVIDER.items():
@@ -57,7 +65,8 @@ def resolve_provider(model_alias: str) -> str:
     raise ValueError(
         f"Cannot resolve provider for model '{model_alias}'. "
         f"Known prefixes: {list(_PREFIX_TO_PROVIDER.keys())}. "
-        f"For local models use the 'ollama/' prefix."
+        f"For local models use the 'ollama/' prefix. "
+        f"For Vertex AI use the 'vertex_ai/' prefix."
     )
 
 
@@ -70,7 +79,7 @@ async def get_llm(model_alias: str, db: AsyncSession) -> ChatLiteLLM:
         result = await llm.ainvoke(messages)
 
     Args:
-        model_alias: The model identifier (e.g. "gpt-4o", "ollama/llama3")
+        model_alias: The model identifier (e.g. "gpt-4o", "vertex_ai/gemini-2.5-pro")
         db: An active async SQLAlchemy session
 
     Returns:
@@ -83,6 +92,14 @@ async def get_llm(model_alias: str, db: AsyncSession) -> ChatLiteLLM:
         return ChatLiteLLM(
             model=model_alias,
             api_base=OLLAMA_API_BASE,
+        )
+
+    # ── Vertex AI (ADC — credentials auto-discovered from environment) ──
+    if provider == "vertex_ai":
+        return ChatLiteLLM(
+            model=model_alias,
+            vertex_project=os.getenv("VERTEXAI_PROJECT"),
+            vertex_location=os.getenv("VERTEXAI_LOCATION", "global"),
         )
 
     # ── Cloud provider (key from DB) ────────────────────────────────────

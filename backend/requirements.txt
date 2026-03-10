@@ -19,3 +19,6 @@ mcp
 langchain-core
 langchain-community
 httpx
+google-cloud-aiplatform
+aiofiles
+PyYAML

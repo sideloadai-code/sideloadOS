@@ -18,3 +18,6 @@ class SideloadState(TypedDict):
     workspace_id: str
     current_task_id: Optional[str]
     draft_artifact_id: Optional[str]
+    next_route: Optional[str]
+    tool_kwargs: Optional[dict]
+    chat_response: Optional[str]

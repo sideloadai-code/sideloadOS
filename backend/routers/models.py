@@ -3,8 +3,10 @@ Model discovery router.
 
 Prefix: /api/models
 Returns available cloud + local (Ollama) models.
+Vertex AI models are available when VERTEXAI_PROJECT env var is set (ADC auth).
 """
 
+import os
 from typing import List, Optional
 
 import httpx
@@ -25,6 +27,7 @@ OLLAMA_TIMEOUT = 1.5  # seconds
 
 
 # ── Known cloud models per provider ─────────────────────────────────────────
+# These providers require an API key stored in the DB.
 
 PROVIDER_MODELS: dict[str, list[str]] = {
     "openai": [
@@ -51,13 +54,31 @@ PROVIDER_MODELS: dict[str, list[str]] = {
     ],
 }
 
+# ── Vertex AI models (uses ADC — no DB key needed) ─────────────────────────
+# Text/chat models only. Image, video, and embedding models are excluded.
+
+VERTEX_AI_MODELS: list[str] = [
+    # ── GA Gemini models ────────────────────────────────────────────────
+    "vertex_ai/gemini-2.5-pro",
+    "vertex_ai/gemini-2.5-flash",
+    "vertex_ai/gemini-2.5-flash-lite",
+    "vertex_ai/gemini-2.0-flash",
+    "vertex_ai/gemini-2.0-flash-lite",
+    # ── Preview Gemini models ───────────────────────────────────────────
+    "vertex_ai/gemini-3.1-pro-preview",
+    "vertex_ai/gemini-3-flash-preview",
+    "vertex_ai/gemini-3.1-flash-lite-preview",
+    # ── Anthropic via Model Garden ──────────────────────────────────────
+    "vertex_ai/claude-opus-4-6",
+]
+
 
 # ── Pydantic Schemas ────────────────────────────────────────────────────────
 
 class AvailableModel(BaseModel):
     model_alias: str
     provider: str
-    source: str  # "cloud" or "ollama"
+    source: str  # "cloud", "vertex_ai", or "ollama"
     size: Optional[str] = None  # populated for Ollama models
 
 
@@ -68,7 +89,8 @@ async def list_available_models(db: AsyncSession = Depends(get_db)):
     """
     Return a merged list of:
     1. Cloud models from providers that have keys configured in the DB
-    2. Local Ollama models (auto-discovered via /api/tags with 1.5s timeout)
+    2. Vertex AI models (if VERTEXAI_PROJECT env var is set — ADC auth)
+    3. Local Ollama models (auto-discovered via /api/tags with 1.5s timeout)
     """
     models: list[AvailableModel] = []
 
@@ -86,6 +108,18 @@ async def list_available_models(db: AsyncSession = Depends(get_db)):
                         source="cloud",
                     )
                 )
+
+    # ── Vertex AI models (ADC — no DB key, just env var) ────────────────
+    vertex_project = os.getenv("VERTEXAI_PROJECT")
+    if vertex_project:
+        for alias in VERTEX_AI_MODELS:
+            models.append(
+                AvailableModel(
+                    model_alias=alias,
+                    provider="vertex_ai",
+                    source="vertex_ai",
+                )
+            )
 
     # ── Local Ollama models (graceful timeout) ──────────────────────────
     try:
