@@ -1,0 +1,40 @@
+# ─── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+venv/
+.venv/
+*.whl
+
+# ─── Node.js / Next.js ──────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.vercel/
+*.tsbuildinfo
+
+# ─── Docker Data Volumes (if bind-mounted) ──────
+postgres_data/
+redis_data/
+
+# ─── Environment Variables ───────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── OS Files ────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE / Editor ────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

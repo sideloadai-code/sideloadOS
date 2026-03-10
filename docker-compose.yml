@@ -1,0 +1,77 @@
+name: sideload-os
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sideload_postgres
+    environment:
+      POSTGRES_USER: sideload
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sideload_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sideload_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sideload_celery
+    command: celery -A main.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
+      - REDIS_URL=redis://redis:6379/0
+      - FERNET_KEY=${FERNET_KEY}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sideload_fastapi
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
+      - REDIS_URL=redis://redis:6379/0
+      - FERNET_KEY=${FERNET_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  nextjs:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sideload_nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - fastapi
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
