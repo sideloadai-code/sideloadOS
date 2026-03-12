@@ -241,14 +241,14 @@ This generates the ADC credentials JSON that Docker bind-mounts into the contain
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui, Zustand, react-resizable-panels |
+| **Frontend** | Next.js 16, React, TypeScript, Tailwind CSS, shadcn/ui, Zustand, react-resizable-panels |
 | **Editors** | Monaco Editor (code), Tiptap (rich text) |
-| **Backend** | FastAPI, Python 3.12, SQLAlchemy 2.0 (asyncpg), Alembic |
+| **Backend** | FastAPI, Python 3.11, SQLAlchemy 2.0 (asyncpg), Alembic |
 | **AI Engine** | LangGraph, LangChain, LiteLLM, importlib + YAML Blueprint Parser |
 | **Database** | PostgreSQL 16 + pgvector |
 | **Task Queue** | Celery + Redis |
 | **Real-Time** | WebSockets, Server-Sent Events (SSE) |
-| **Infrastructure** | Docker Compose, Docker Bind-Mounts |
+| **Infrastructure** | Docker Compose, Docker Bind-Mounts, Docker Sandbox (Sibling Containers) |
 
 ---
 
@@ -258,7 +258,7 @@ Phase 1 (The Engine) and Phase 2 (Autonomy & Blueprints) are complete. Phase 3 t
 
 - [x] **The UI Cartridge Slot** — A frontend Next.js interface to hot-swap Blueprints dynamically without editing `.env`. Scan the `blueprints/` directory and switch the AI's entire brain with a single click.
 - [ ] **Deep Semantic Memory** — Activate `pgvector` for RAG ingestion so the OS can read and remember entire codebases and PDFs. Build `ingestion_node` and `rag_node` for the Supervisor to search your documents before answering.
-- [ ] **The Execution Sandbox** — Upgrade the Action Node to physically execute generated Python code in isolated Docker sandboxes, read terminal output, and debug its own errors autonomously.
+- [x] **The Execution Sandbox** — AI-generated code is executed in air-gapped Docker containers (`network_mode="none"`, `mem_limit="128m"`) via the sibling container pattern. QA reviews real terminal output (Tracebacks, exit codes) and forces autonomous fixes before human approval. Includes try/finally container cleanup, markdown backtick stripping, and log truncation (2000 char cap) to protect LLM context windows.
 - [x] **Multi-Agent Swarms** — Create new YAML Blueprints that spawn specialized `architect_node`, `coder_node`, and `qa_tester_node` agents that debate each other and present the final output.
 
 ---

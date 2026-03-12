@@ -33,6 +33,7 @@ services:
       - ./backend:/app
       - ./workspaces:/app/workspaces
       - ./blueprints:/app/blueprints
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
       - REDIS_URL=redis://redis:6379/0
@@ -53,6 +54,7 @@ services:
       - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
       - ./workspaces:/app/workspaces
       - ./blueprints:/app/blueprints
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATABASE_URL=postgresql+asyncpg://sideload:${POSTGRES_PASSWORD}@postgres:5432/sideload_db
       - REDIS_URL=redis://redis:6379/0

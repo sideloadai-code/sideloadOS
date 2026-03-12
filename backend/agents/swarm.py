@@ -10,6 +10,7 @@ Artifact model) and are wired into a graph topology via the
 software_engineer.yaml blueprint.
 """
 
+import re
 import uuid
 import json
 
@@ -21,6 +22,7 @@ from models import Artifact
 from gateway import get_llm
 from engine.state import SideloadState
 from engine.graph import _extract_json
+from engine.sandbox import run_in_sandbox
 
 
 # ── System prompts (static — never interpolated with user data) ─────────────
@@ -38,7 +40,10 @@ _DEVELOPER_PROMPT = (
 )
 
 _QA_PROMPT = (
-    "You are the QA Tester. Review the provided code against the specification. "
+    "You are the QA Tester. Review the provided Code against the Spec AND the "
+    "Sandbox Terminal Output. If the Sandbox Terminal Output shows a Traceback, "
+    "Exception, SyntaxError, or failed execution, you MUST fail the code "
+    "(pass: false) and explain the error to the Developer so they can fix it. "
     'Respond ONLY in raw JSON: {"pass": true/false, "feedback": "explain why", '
     '"title": "A short 3-5 word title for this file"}. '
     "Do NOT include any text before or after the JSON object."
@@ -68,6 +73,7 @@ async def architect_node(state: SideloadState, config: RunnableConfig) -> dict:
         "code_draft": None,
         "qa_feedback": None,
         "draft_artifact_id": None,
+        "execution_logs": None,
     }
 
 
@@ -92,6 +98,22 @@ async def developer_node(state: SideloadState, config: RunnableConfig) -> dict:
     return {"code_draft": raw_text}
 
 
+async def execution_node(state: SideloadState, config: RunnableConfig) -> dict:
+    """Execution Sandbox — runs the Developer's code in a secure Docker container."""
+    code = state.get("code_draft")
+    if not code:
+        return {"execution_logs": "No code provided."}
+
+    # Amendment 2: Strip markdown backticks before execution
+    clean_code = code.strip()
+    if clean_code.startswith("```"):
+        clean_code = re.sub(r"^```[a-zA-Z]*\n", "", clean_code)
+        clean_code = re.sub(r"\n```$", "", clean_code)
+
+    logs = await run_in_sandbox(clean_code)
+    return {"execution_logs": logs}
+
+
 async def qa_node(state: SideloadState, config: RunnableConfig) -> dict:
     """QA Tester — reviews code against spec, returns pass/fail JSON."""
     model_alias = config.get("configurable", {}).get("model_alias", "openai")
@@ -107,6 +129,7 @@ async def qa_node(state: SideloadState, config: RunnableConfig) -> dict:
     data_message = HumanMessage(
         content="Code:\n" + str(state.get("code_draft"))
         + "\n\nSpec:\n" + str(state.get("tech_spec"))
+        + "\n\nSandbox Terminal Output:\n" + str(state.get("execution_logs"))
     )
     messages = [SystemMessage(content=_QA_PROMPT)] + state["messages"] + [data_message]
     ai_message = await llm.ainvoke(messages)

@@ -113,6 +113,7 @@ export function useAgentStream() {
                             action_node: "✅ Applying changes...",
                             architect_node: "📐 Architect designing spec...",
                             developer_node: "💻 Developer writing code...",
+                            execution_node: "🧪 Executing code in secure sandbox...",
                             qa_node: "🔎 QA testing code...",
                         };
 

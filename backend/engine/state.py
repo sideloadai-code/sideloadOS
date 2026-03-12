@@ -26,3 +26,4 @@ class SideloadState(TypedDict):
     code_draft: Optional[str]
     qa_feedback: Optional[str]
     swarm_iterations: Optional[int]
+    execution_logs: Optional[str]

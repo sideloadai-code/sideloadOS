@@ -1,24 +1,79 @@
-\# UI/UX MANIFESTO: The 3-Pane Layout
+# UI/UX Specification: The 3-Pane Antigravity Layout
 
+The entire application runs on a single `100vh` non-scrolling page using Zustand state to manipulate three panes via `react-resizable-panels`.
 
+---
 
-The entire application runs on a single page using Zustand state to manipulate three panes via `react-resizable-panels`.
+## Pane Layout
 
+| Pane | Position | Default Width | Role |
+|------|----------|:---:|------|
+| **Command Center** | Left | 20% | Workspace tree, Blueprint Switcher, Settings |
+| **Action Stream** | Center | 80% | Live execution cards, SSE streaming, Omnibar |
+| **Artifact Workbench** | Right | 0% → 40% | Monaco/Tiptap editors with approval controls |
 
+### Resize Behavior
 
-1\. \*\*Pane 1 (Left - Default 20%): 'Command Center'\*\*
+- **Default state:** Panes 1 + 2 visible (20/80). Pane 3 is hidden (`rightPaneWidth: 0`).
+- **Artifact review:** When `[Review Artifact]` is clicked, layout transitions to **20/40/40**.
+- **Close workbench:** Returns to 20/80/0.
+- Managed by `useLayoutStore` (Zustand) with `openWorkbench()` / `closeWorkbench()` actions.
 
-&nbsp;  - Zustand-driven tree-view of Workspaces and nested Tasks using `lucide-react`.
+---
 
-2\. \*\*Pane 2 (Center - Default 80%): 'Action Stream'\*\*
+## Pane 1: Command Center
 
-&nbsp;  - Replaces text chat. Renders `<WalkthroughCard />` components (shadcn Accordions) to show execution steps. 
+- **Start Conversation** button (top)
+- **Blueprint Switcher** — `<select>` dropdown that:
+  - Fetches cartridges from `GET /api/blueprints/`
+  - Displays blueprint name and description
+  - Persists selection to `localStorage` (`sideload_active_blueprint`)
+  - Selection is passed as `blueprint_path` to the orchestration API
+- **Workspace Tree** — Zustand-driven list of workspaces using `lucide-react` icons. Active workspace highlighted with emerald accent.
+- **Settings** — Opens `<SettingsModal>` for API key management and provider configuration.
 
-&nbsp;  - Bottom sticky absolute footer contains the Omnibar with dynamic 'Model' and 'Agent' dropdown menus.
+---
 
-3\. \*\*Pane 3 (Right - Default 0%): 'Artifact Workbench'\*\*
+## Pane 2: Action Stream
 
-&nbsp;  - Hidden by default. Opens (resizing panes to 20/40/40) ONLY when `\[Review Artifact]` is clicked in Pane 2. 
+- **WalkthroughCard** — Renders execution steps as an animated card with:
+  - Node labels mapped to human-readable descriptions (e.g., `🧭 Analyzing request...`)
+  - Swarm-specific labels: `📐 Architect designing spec...`, `💻 Developer writing code...`, `🔎 QA testing code...`
+  - `[Review Artifact]` button that opens Pane 3
+  - Error display with `❌` prefix
+  - Chat response display with `🤖` prefix
+- **Omnibar** (absolute bottom footer):
+  - **Model dropdown** — Dynamically populated from `GET /api/models/available`
+  - **Agent dropdown** — Currently static ("System Orchestrator")
+  - **Text input** — Disabled until workspace + model selected
+  - **Send button** — Triggers `POST /api/orchestrate` via `useAgentStream` hook
 
-&nbsp;  - Renders `@monaco-editor/react` (for code) or `@tiptap/react` (for text) with a green `Approve \& Execute` button in the header.
+---
 
+## Pane 3: Artifact Workbench
+
+- Hidden by default. Opens only when `[Review Artifact]` card is clicked.
+- **Code artifacts** → `@monaco-editor/react` with syntax highlighting
+- **Text artifacts** → `@tiptap/react` rich text editor (RichTextEditor component)
+- **Header controls:**
+  - ✅ `Approve & Execute` button (green) — calls `POST /api/artifacts/{id}/approve`
+  - ✏️ Edit toggle
+  - ❌ Close button — collapses Pane 3
+
+---
+
+## Real-Time Communication
+
+| Channel | Hook | Purpose |
+|---------|------|---------|
+| WebSocket | `useGlobalSocket` | System events (workspace creation, etc.) |
+| SSE | `useAgentStream` | Agent execution streaming with cross-platform delimiter handling |
+
+---
+
+## State Management
+
+| Store | File | Responsibilities |
+|-------|------|-----------------|
+| `useLayoutStore` | `store/layoutStore.ts` | Pane widths, workbench open/close, active artifact ID |
+| `useWorkspaceStore` | `store/workspaceStore.ts` | Workspace list, active workspace selection |
