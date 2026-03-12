@@ -115,6 +115,8 @@ export function useAgentStream() {
                             developer_node: "💻 Developer writing code...",
                             execution_node: "🧪 Executing code in secure sandbox...",
                             qa_node: "🔎 QA testing code...",
+                            ingest_node: "📚 Memorizing workspace files...",
+                            rag_node: "🧠 Searching deep semantic memory...",
                         };
 
                         if (eventType === "status") {

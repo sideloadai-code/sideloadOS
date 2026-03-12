@@ -57,6 +57,14 @@ erDiagram
         VARCHAR vertex_project
         VARCHAR vertex_location
     }
+
+    document_chunks {
+        UUID id PK
+        VARCHAR workspace_id IX
+        VARCHAR filename
+        TEXT content
+        VECTOR_384 embedding
+    }
 ```
 
 ---
@@ -117,6 +125,18 @@ erDiagram
 | `encrypted_api_key` | `VARCHAR` | NOT NULL | AES-256 encrypted API key via `cryptography.fernet` |
 | `vertex_project` | `VARCHAR(255)` | NULLABLE | GCP project ID (Vertex AI only) |
 | `vertex_location` | `VARCHAR(255)` | NULLABLE | GCP region/location (Vertex AI only) |
+
+### `document_chunks`
+
+> **Note:** Requires `pgvector` extension (`CREATE EXTENSION vector`). Used for Deep Semantic Memory (RAG).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | `UUID` | PK, default `uuid4` | Unique chunk identifier |
+| `workspace_id` | `VARCHAR(255)` | NOT NULL, INDEXED | Workspace ID (string-cast UUID from graph state) |
+| `filename` | `VARCHAR(255)` | NOT NULL | Source file name |
+| `content` | `TEXT` | NOT NULL | Text content of the chunk |
+| `embedding` | `VECTOR(384)` | NOT NULL | 384-dim vector from `all-MiniLM-L6-v2` |
 
 ---
 

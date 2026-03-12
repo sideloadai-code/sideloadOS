@@ -17,6 +17,10 @@ nodes:
     handler: "engine.graph.draft_node"
   - name: "action_node"
     handler: "engine.graph.action_node"
+  - name: "ingest_node"
+    handler: "engine.graph.ingest_node"
+  - name: "rag_node"
+    handler: "engine.graph.rag_node"
 
 edges:
   - source: "workspace_node"
@@ -27,6 +31,10 @@ edges:
     target: "action_node"
   - source: "action_node"
     target: "__end__"
+  - source: "ingest_node"
+    target: "chat_node"
+  - source: "rag_node"
+    target: "chat_node"
 
 conditional_edges:
   - source: "supervisor_node"
@@ -35,3 +43,5 @@ conditional_edges:
       create_workspace: "workspace_node"
       draft_artifact: "draft_node"
       chat: "chat_node"
+      ingest_workspace: "ingest_node"
+      rag_search: "rag_node"

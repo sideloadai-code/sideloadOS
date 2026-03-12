@@ -29,6 +29,7 @@ from database import AsyncSessionLocal
 from models import Artifact, Workspace
 from engine.fs_tools import write_artifact_to_disk
 from engine.state import SideloadState
+from engine.rag import ingest_workspace, search_workspace
 from gateway import get_llm
 from agents.tools import create_workspace
 
@@ -47,8 +48,8 @@ class DraftOutput(BaseModel):
 
 
 class SupervisorDecision(BaseModel):
-    decision: Literal["create_workspace", "draft_artifact", "chat"]
-    tool_kwargs: Optional[dict] = None
+    decision: Literal["create_workspace", "draft_artifact", "chat", "ingest_workspace", "rag_search"]
+    tool_kwargs: Optional[dict] = Field(default_factory=dict)
     chat_response: Optional[str] = None
 
 
@@ -86,7 +87,7 @@ _SUPERVISOR_PROMPT = (
     "You are the SideloadOS Master Router. Analyze the user's request.\n"
     "Output ONLY raw JSON matching this schema:\n"
     "{\n"
-    '  "decision": "create_workspace" | "draft_artifact" | "chat",\n'
+    '  "decision": "create_workspace" | "draft_artifact" | "chat" | "ingest_workspace" | "rag_search",\n'
     '  "tool_kwargs": { ... } or null,\n'
     '  "chat_response": "..." or null\n'
     "}\n"
@@ -95,6 +96,10 @@ _SUPERVISOR_PROMPT = (
     "and set tool_kwargs to {\"name\": \"<workspace_name>\"}.\n"
     "- If the user asks to write code, a document, or any artifact, "
     "select 'draft_artifact'. Leave tool_kwargs and chat_response null.\n"
+    "- If the user asks you to read, memorize, sync, or ingest the workspace, "
+    "select 'ingest_workspace'. Leave tool_kwargs and chat_response null.\n"
+    "- If the user asks a question about existing files or code in the workspace, "
+    "select 'rag_search' and set tool_kwargs to {\"query\": \"their specific search query\"}.\n"
     "- Otherwise, select 'chat' and write a friendly response in chat_response.\n"
     "Do NOT include any text before or after the JSON object."
 )
@@ -233,6 +238,48 @@ async def action_node(state: SideloadState) -> dict:
             AIMessage(content=f"Successfully wrote {artifact.title} to disk at {file_path}")
         ]
     }
+
+
+async def ingest_node(state: SideloadState) -> dict:
+    """Ingest all workspace files into pgvector for semantic search."""
+    workspace_id = state.get("workspace_id")
+    if not workspace_id:
+        return {"chat_response": "Error: No workspace selected."}
+    result = await ingest_workspace(workspace_id)
+    return {"chat_response": result}
+
+
+async def rag_node(state: SideloadState, config: RunnableConfig) -> dict:
+    """Retrieve relevant workspace context via cosine similarity and answer with LLM."""
+    workspace_id = state.get("workspace_id")
+    if not workspace_id:
+        return {"chat_response": "Error: No workspace selected."}
+
+    # Extract query from tool_kwargs (set by supervisor) or fall back to last message
+    query = (state.get("tool_kwargs") or {}).get(
+        "query", state["messages"][-1].content
+    )
+
+    context = await search_workspace(workspace_id, query)
+
+    model_alias = config.get("configurable", {}).get("model_alias", "openai")
+
+    # SESSION: fetch LLM — then RELEASE before network call
+    async with AsyncSessionLocal() as session:
+        llm = await get_llm(model_alias, session)
+
+    system_msg = SystemMessage(
+        content=(
+            "You are SideloadOS. Answer the user's query using ONLY this "
+            "workspace context:\n\n"
+            f"{context}\n\n"
+            "If the answer isn't in the context, say so."
+        )
+    )
+    ai_message = await llm.ainvoke([system_msg] + state["messages"])
+
+    raw = ai_message.content if hasattr(ai_message, "content") else str(ai_message)
+    return {"chat_response": raw}
 
 
 def route_from_supervisor(state: SideloadState) -> str:

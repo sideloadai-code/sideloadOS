@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy import String, DateTime, ForeignKey, Enum, Text, JSON, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from pgvector.sqlalchemy import Vector
 
 class Base(DeclarativeBase):
     pass
@@ -57,3 +58,14 @@ class Setting(Base):
     encrypted_api_key: Mapped[str] = mapped_column(String, nullable=False)
     vertex_project: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     vertex_location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    workspace_id: Mapped[str] = mapped_column(String(255), index=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[Any] = mapped_column(Vector(384))

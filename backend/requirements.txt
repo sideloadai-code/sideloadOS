@@ -23,3 +23,7 @@ google-cloud-aiplatform
 aiofiles
 PyYAML
 docker
+langchain-huggingface
+langchain-text-splitters
+pgvector
+sentence-transformers

@@ -70,7 +70,11 @@ Provider API keys are stored AES-256 encrypted in PostgreSQL via `cryptography.f
 
 ## 4. Persistent Deep Memory (Pillar 2)
 
-LangGraph state is persisted via **PostgreSQL Checkpointers** (`AsyncPostgresSaver`). Every conversation thread, agent state, and execution checkpoint is serialized to the database. Server restarts do not lose context.
+**Checkpointer Memory:** LangGraph state is persisted via **PostgreSQL Checkpointers** (`AsyncPostgresSaver`). Every conversation thread, agent state, and execution checkpoint is serialized to the database. Server restarts do not lose context.
+
+**Deep Semantic Memory (RAG):** Workspace files are chunked via `RecursiveCharacterTextSplitter`, embedded using **HuggingFace `all-MiniLM-L6-v2`** (80MB local model, zero API keys), and stored as 384-dimensional vectors in **pgvector**. The Supervisor autonomously routes to:
+- `ingest_node` — "Memorize my workspace" → walks files, embeds chunks, stores in `document_chunks`
+- `rag_node` — "What does X do?" → cosine similarity retrieval → LLM-grounded answer
 
 ---
 
