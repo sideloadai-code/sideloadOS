@@ -139,6 +139,7 @@ async def draft_node(state: SideloadState, config: RunnableConfig) -> dict:
     new_id = uuid.uuid4()
     thread_id = config.get("configurable", {}).get("thread_id")
     model_alias = config.get("configurable", {}).get("model_alias", "openai")
+    blueprint_path = config.get("configurable", {}).get("blueprint_path", "default.yaml")
 
     # SESSION 1: Fetch the LLM instance (quick DB read) — then RELEASE
     async with AsyncSessionLocal() as session:
@@ -163,6 +164,7 @@ async def draft_node(state: SideloadState, config: RunnableConfig) -> dict:
             content=response.content,
             status="draft",
             thread_id=thread_id,
+            blueprint_path=blueprint_path,
         )
         session.add(artifact)
         await session.commit()

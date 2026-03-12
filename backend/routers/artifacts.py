@@ -32,6 +32,7 @@ class ArtifactOut(BaseModel):
     status: str
     thread_id: Optional[str]
     file_path: Optional[str] = None
+    blueprint_path: str
 
 
 class ApproveRequest(BaseModel):
@@ -40,7 +41,7 @@ class ApproveRequest(BaseModel):
 
 # ── Background Task — isolated resume wrapper (Amendment 4) ─────────────────
 
-async def resume_workflow(checkpointer, thread_id: str):
+async def resume_workflow(checkpointer, thread_id: str, blueprint_path: str = "default.yaml"):
     """Resume a paused LangGraph thread in the background.
 
     This function is invoked via FastAPI BackgroundTasks so the HTTP
@@ -48,9 +49,17 @@ async def resume_workflow(checkpointer, thread_id: str):
     """
     import os
     from engine.blueprint_parser import compile_blueprint
-    blueprint_path = os.getenv("SIDELOAD_BLUEPRINT", "/app/blueprints/default.yaml")
-    graph = compile_blueprint(blueprint_path, checkpointer)
-    await graph.ainvoke(None, {"configurable": {"thread_id": thread_id}})
+
+    # Amendment 2: Ghost Cartridge guard — fallback if file was deleted
+    safe_blueprint = os.path.basename(blueprint_path)
+    target_path = f"/app/blueprints/{safe_blueprint}"
+    if not os.path.exists(target_path):
+        target_path = "/app/blueprints/default.yaml"
+        safe_blueprint = "default.yaml"
+
+    graph = compile_blueprint(target_path, checkpointer)
+    # Amendment 3: Inject blueprint_path into configurable dict for future nodes
+    await graph.ainvoke(None, {"configurable": {"thread_id": thread_id, "blueprint_path": safe_blueprint}})
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────
@@ -96,7 +105,7 @@ async def approve_artifact(
     if artifact.thread_id:
         checkpointer = request.app.state.checkpointer
         background_tasks.add_task(
-            resume_workflow, checkpointer, artifact.thread_id
+            resume_workflow, checkpointer, artifact.thread_id, artifact.blueprint_path
         )
 
     return {"status": "resumed"}

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, DateTime, ForeignKey, Enum, Text, JSON
+from sqlalchemy import String, DateTime, ForeignKey, Enum, Text, JSON, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
@@ -47,6 +47,7 @@ class Artifact(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     thread_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     file_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    blueprint_path: Mapped[str] = mapped_column(String(255), server_default=text("'default.yaml'"))
 
 class Setting(Base):
     __tablename__ = "settings"

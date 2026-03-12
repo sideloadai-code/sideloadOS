@@ -21,3 +21,8 @@ class SideloadState(TypedDict):
     next_route: Optional[str]
     tool_kwargs: Optional[dict]
     chat_response: Optional[str]
+    # ── Swarm memory keys (used by custom cartridges) ───────────────────
+    tech_spec: Optional[str]
+    code_draft: Optional[str]
+    qa_feedback: Optional[str]
+    swarm_iterations: Optional[int]

@@ -23,7 +23,7 @@ export function useAgentStream() {
     const abortRef = useRef<AbortController | null>(null);
 
     const startExecution = useCallback(
-        async (workspaceId: string, prompt: string, modelAlias: string) => {
+        async (workspaceId: string, prompt: string, modelAlias: string, blueprintPath: string = "default.yaml") => {
             // Abort any in-flight stream
             abortRef.current?.abort();
             const controller = new AbortController();
@@ -49,6 +49,7 @@ export function useAgentStream() {
                         prompt,
                         thread_id: threadId,
                         model_alias: modelAlias,
+                        blueprint_path: blueprintPath,
                     }),
                     signal: controller.signal,
                 });
@@ -110,6 +111,9 @@ export function useAgentStream() {
                             chat_node: "💬 Generating response...",
                             draft_node: "📝 Drafting artifact...",
                             action_node: "✅ Applying changes...",
+                            architect_node: "📐 Architect designing spec...",
+                            developer_node: "💻 Developer writing code...",
+                            qa_node: "🔎 QA testing code...",
                         };
 
                         if (eventType === "status") {

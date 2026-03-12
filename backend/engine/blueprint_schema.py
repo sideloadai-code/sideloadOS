@@ -27,6 +27,7 @@ class ConditionalEdgeDef(BaseModel):
 
 class BlueprintDef(BaseModel):
     name: str
+    description: str = Field(default="")
     entry_point: str
     interrupt_before: list[str] = Field(default_factory=list)
     nodes: list[NodeDef] = Field(default_factory=list)

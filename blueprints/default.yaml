@@ -1,4 +1,5 @@
 name: "SideloadOS Core"
+description: "The standard SideloadOS orchestration engine."
 
 entry_point: "supervisor_node"
 

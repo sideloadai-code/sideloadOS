@@ -23,15 +23,29 @@ class OrchestrateRequest(BaseModel):
     prompt: str
     thread_id: str
     model_alias: str = "gpt-4o"
+    blueprint_path: str = "default.yaml"
 
 
 @router.post("/orchestrate")
 async def orchestrate(body: OrchestrateRequest, request: Request):
     """Stream LangGraph execution as SSE, pausing at HITL interrupt."""
     checkpointer = request.app.state.checkpointer
-    blueprint_path = os.getenv("SIDELOAD_BLUEPRINT", "/app/blueprints/default.yaml")
-    graph = compile_blueprint(blueprint_path, checkpointer)
-    config = {"configurable": {"thread_id": body.thread_id, "model_alias": body.model_alias}}
+
+    # CRITICAL SECURITY: prevent directory traversal attacks
+    safe_blueprint = os.path.basename(body.blueprint_path)
+
+    # Amendment 2: Ghost Cartridge guard — fallback if file was deleted
+    target_path = f"/app/blueprints/{safe_blueprint}"
+    if not os.path.exists(target_path):
+        target_path = "/app/blueprints/default.yaml"
+        safe_blueprint = "default.yaml"
+
+    graph = compile_blueprint(target_path, checkpointer)
+    config = {"configurable": {
+        "thread_id": body.thread_id,
+        "model_alias": body.model_alias,
+        "blueprint_path": safe_blueprint,
+    }}
 
     async def event_generator():
         try:

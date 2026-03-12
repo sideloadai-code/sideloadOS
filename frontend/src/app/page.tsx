@@ -32,6 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { WalkthroughCard } from "@/components/WalkthroughCard";
 import { Workbench } from "@/components/Workbench";
 import { SettingsModal } from "@/components/SettingsModal";
+import { BlueprintSwitcher } from "@/components/BlueprintSwitcher";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -46,9 +47,11 @@ interface AvailableModel {
 
 interface CommandCenterProps {
   fetchModels: () => void;
+  activeBlueprint: string;
+  onBlueprintChange: (value: string) => void;
 }
 
-function CommandCenter({ fetchModels }: CommandCenterProps) {
+function CommandCenter({ fetchModels, activeBlueprint, onBlueprintChange }: CommandCenterProps) {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const setWorkspaces = useWorkspaceStore((s) => s.setWorkspaces);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
@@ -81,6 +84,12 @@ function CommandCenter({ fetchModels }: CommandCenterProps) {
           Start conversation
         </Button>
       </div>
+
+      {/* Blueprint Switcher */}
+      <BlueprintSwitcher
+        activeBlueprint={activeBlueprint}
+        onChange={onBlueprintChange}
+      />
 
       {/* Workspace tree */}
       <ScrollArea className="flex-1 px-2">
@@ -321,6 +330,17 @@ export default function Home() {
   // ── Lifted model state (shared between Omnibar and SettingsModal) ─────
   const [models, setModels] = useState<AvailableModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [activeBlueprint, setActiveBlueprint] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sideload_active_blueprint") || "default.yaml";
+    }
+    return "default.yaml";
+  });
+
+  // Persist blueprint selection to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem("sideload_active_blueprint", activeBlueprint);
+  }, [activeBlueprint]);
 
   const fetchModels = useCallback(async () => {
     setModelsLoading(true);
@@ -345,9 +365,9 @@ export default function Home() {
   const handleSend = useCallback(
     (userPrompt: string, modelAlias: string) => {
       if (!activeWorkspaceId) return;
-      startExecution(activeWorkspaceId, userPrompt, modelAlias);
+      startExecution(activeWorkspaceId, userPrompt, modelAlias, activeBlueprint);
     },
-    [activeWorkspaceId, startExecution]
+    [activeWorkspaceId, startExecution, activeBlueprint]
   );
 
   return (
@@ -357,7 +377,11 @@ export default function Home() {
     >
       {/* Pane 1: Command Center */}
       <Panel id="sidebar" defaultSize="20%" minSize="15%" maxSize="30%">
-        <CommandCenter fetchModels={fetchModels} />
+        <CommandCenter
+          fetchModels={fetchModels}
+          activeBlueprint={activeBlueprint}
+          onBlueprintChange={setActiveBlueprint}
+        />
       </Panel>
 
       <Separator />

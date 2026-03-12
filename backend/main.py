@@ -8,6 +8,7 @@ from routers.models import router as models_router
 from routers.workspaces import router as workspaces_router
 from routers.orchestration import router as orchestration_router
 from routers.artifacts import router as artifacts_router
+from routers.blueprints import router as blueprints_router
 from ws_manager import manager
 from engine.checkpointer import get_checkpointer
 
@@ -41,6 +42,7 @@ app.include_router(models_router)
 app.include_router(workspaces_router)
 app.include_router(orchestration_router)
 app.include_router(artifacts_router)
+app.include_router(blueprints_router)
 
 
 # ── WebSocket ───────────────────────────────────────────────────────────────

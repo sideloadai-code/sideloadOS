@@ -256,10 +256,10 @@ This generates the ADC credentials JSON that Docker bind-mounts into the contain
 
 Phase 1 (The Engine) and Phase 2 (Autonomy & Blueprints) are complete. Phase 3 targets:
 
-- [ ] **The UI Cartridge Slot** — A frontend Next.js interface to hot-swap Blueprints dynamically without editing `.env`. Scan the `blueprints/` directory and switch the AI's entire brain with a single click.
+- [x] **The UI Cartridge Slot** — A frontend Next.js interface to hot-swap Blueprints dynamically without editing `.env`. Scan the `blueprints/` directory and switch the AI's entire brain with a single click.
 - [ ] **Deep Semantic Memory** — Activate `pgvector` for RAG ingestion so the OS can read and remember entire codebases and PDFs. Build `ingestion_node` and `rag_node` for the Supervisor to search your documents before answering.
 - [ ] **The Execution Sandbox** — Upgrade the Action Node to physically execute generated Python code in isolated Docker sandboxes, read terminal output, and debug its own errors autonomously.
-- [ ] **Multi-Agent Swarms** — Create new YAML Blueprints that spawn specialized `architect_node`, `coder_node`, and `qa_tester_node` agents that debate each other and present the final output.
+- [x] **Multi-Agent Swarms** — Create new YAML Blueprints that spawn specialized `architect_node`, `coder_node`, and `qa_tester_node` agents that debate each other and present the final output.
 
 ---
 
